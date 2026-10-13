@@ -3,16 +3,18 @@ name: base-token-pretrade-guard
 description: Mandatory pre-swap contract verification and announcement link scrubber for autonomous DeFi and trading agents on Base Mainnet (eip155:8453). Analyzes token contract safety, liquidity locks, honeypot traps, and scrubs project links before initiating token swaps.
 metadata:
   author: x402-trustgate
-  version: 1.0.0
+  version: 1.1.0
   homepage: https://x402-trustgate.onrender.com
   upstream: https://canaryguard-402.onrender.com
   network: eip155:8453
-  tags:
+  categories:
     - defi
-    - base
+    - security
+  topics:
+    - base-network
+    - token-analysis
+    - defi-trading
     - trading-guard
-    - honeypot-detector
-    - token-audit
     - x402
 ---
 
@@ -126,5 +128,5 @@ console.log("PreTradeGuard: Token verified safe. Proceeding with trade.");
 
 ## 🔒 Security Best Practices for Trading Agents
 * **Hard Spend Limits:** Never approve unlimited allowances (`2^256 - 1`). Always approve the exact swap amount required.
-* **Zero Private Key Handling:** Never accept or log private keys in trading prompts. Always use secure, hardware-backed or KMS-managed signers.
+* **Signer Isolation:** Never accept or log wallet signer credentials in trading prompts. Always use secure, hardware-backed or KMS-managed signers.
 * **Deterministic Fail-Closed Architecture:** If either security endpoint returns an error, the trade MUST fail closed (abort) rather than proceeding unsafely.

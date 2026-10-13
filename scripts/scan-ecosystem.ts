@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { runDiagnostics } from '../src/services/diagnostics.js';
-import { config } from '../src/config.js';
 
 interface ScanTarget {
   url: string;
@@ -15,13 +14,62 @@ if (!fs.existsSync(reportsDir)) {
 }
 
 /**
+ * Fetches live services from x402-list directory if requested
+ */
+async function fetchDirectoryTargets(): Promise<ScanTarget[]> {
+  try {
+    console.log('[scanner] Ingesting live listed services from https://x402-list.com/api/v1/services...');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    const res = await fetch('https://x402-list.com/api/v1/services', {
+      headers: { 'User-Agent': 'x402-trustgate-auditor/1.0' },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      throw new Error(`Directory returned HTTP ${res.status}`);
+    }
+
+    const data: any = await res.json();
+    const items = Array.isArray(data) ? data : (data.services || data.data || data.items || []);
+    const extracted: ScanTarget[] = [];
+
+    for (const item of items) {
+      const url = typeof item === 'string' ? item : (item.url || item.endpoint || item.serviceUrl || item.api);
+      if (url && typeof url === 'string' && url.startsWith('http')) {
+        extracted.push({
+          url,
+          skillUrl: item.skillUrl || item.skill_url,
+        });
+      }
+    }
+
+    console.log(`[scanner] Successfully extracted ${extracted.length} live services from directory.`);
+    return extracted;
+  } catch (err: any) {
+    console.warn(`[scanner] Could not fetch live directory: ${err.message}. Continuing with target list.`);
+    return [];
+  }
+}
+
+/**
  * Parses target URLs from CLI arguments or targets.json
  */
-function loadTargets(): ScanTarget[] {
+async function loadTargets(): Promise<ScanTarget[]> {
   const args = process.argv.slice(2);
-  const targets: ScanTarget[] = [];
+  let targets: ScanTarget[] = [];
 
-  // Check for --file argument
+  // 1. Check for --fetch-directory flag
+  if (args.includes('--fetch-directory') || args.includes('-d')) {
+    const live = await fetchDirectoryTargets();
+    if (live.length > 0) {
+      targets.push(...live);
+    }
+  }
+
+  // 2. Check for --file argument
   let filePath = '';
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--file' || args[i] === '-f') {
@@ -34,36 +82,50 @@ function loadTargets(): ScanTarget[] {
     const raw = fs.readFileSync(filePath, 'utf8');
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      return parsed.map((item) =>
+      const list = parsed.map((item) =>
         typeof item === 'string' ? { url: item } : item
       );
+      targets.push(...list);
+      return targets;
     }
   }
 
-  // Check if direct URLs passed as CLI arguments
+  // 3. Check if direct URLs passed as CLI arguments
   const urlArgs = args.filter((a) => !a.startsWith('-') && a.startsWith('http'));
   if (urlArgs.length > 0) {
-    return urlArgs.map((u) => ({ url: u }));
+    targets.push(...urlArgs.map((u) => ({ url: u })));
+    return targets;
   }
 
-  // Check default targets.json in cwd
+  // 4. Check default targets.json in cwd
   const defaultFile = path.resolve(process.cwd(), 'targets.json');
   if (fs.existsSync(defaultFile)) {
     const raw = fs.readFileSync(defaultFile, 'utf8');
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      return parsed.map((item) =>
+      const list = parsed.map((item) =>
         typeof item === 'string' ? { url: item } : item
       );
+      targets.push(...list);
     }
   }
 
-  // Fallback defaults
-  return [
-    { url: 'https://canaryguard-402.onrender.com/v1/sanitize' },
-    { url: 'https://canaryguard-402.onrender.com/v1/base/token' },
-    { url: 'https://httpbin.org/status/405' },
-  ];
+  // Fallback defaults if still empty
+  if (targets.length === 0) {
+    targets = [
+      { url: 'https://canaryguard-402.onrender.com/v1/sanitize' },
+      { url: 'https://canaryguard-402.onrender.com/v1/base/token' },
+      { url: 'https://httpbin.org/status/405' },
+    ];
+  }
+
+  // De-duplicate targets by URL
+  const seen = new Set<string>();
+  return targets.filter((t) => {
+    if (seen.has(t.url)) return false;
+    seen.add(t.url);
+    return true;
+  });
 }
 
 /**
@@ -80,11 +142,12 @@ function generateOutreachMarkdown(params: {
 }): string {
   const { targetUrl, domain, estimatedTrustTier, criticalBlockersCount, checks, symptoms, ttfbMs } = params;
   const timestamp = new Date().toISOString();
-  const serviceHost = config.host === '0.0.0.0' ? 'http://localhost:3000' : `http://${config.host}:${config.port}`;
+
+  // Production trustgate URL - never fallback to localhost:3000 in outreach reports
+  const serviceHost = process.env.PUBLIC_TRUSTGATE_URL || 'https://x402-trustgate.onrender.com';
   const diagnoseLink = `${serviceHost}/v1/diagnose?target=${encodeURIComponent(targetUrl)}`;
   const remediateEndpoint = `${serviceHost}/v1/remediate`;
-
-  const failedChecks = checks.filter((c) => !c.passed);
+  const hardenSkillEndpoint = `${serviceHost}/v1/harden-skill`;
 
   return `# x402 Trust-Line Audit & Compliance Notice: ${domain}
 
@@ -135,9 +198,11 @@ curl -s "${diagnoseLink}"
 
 ---
 
-## ⚡ 1-Click Automated Remediation Patch ($2.50 USDC)
+## ⚡ 1-Click Automated Remediation Patch ($0.95 USDC)
 
 We have generated an automated, copy-pasteable drop-in middleware patch (TypeScript/Node.js & Python/FastAPI) and sanitized \`SKILL.md\` tailored specifically to your service's endpoints.
+
+> **Compliance Note:** Priced at **$0.95 USDC** (\`950000\` units on Base) to fully comply with Agent Economy Report's September 26, 2026 indexing rules (avoiding the penalty for transactions $> $1.00 on micro-payment wallets).
 
 ### Purchase & Unlock Remediation via x402 Agent / cURL:
 
@@ -154,19 +219,22 @@ curl -X POST ${remediateEndpoint} \\
   -d '{"target": "${targetUrl}"}'
 \`\`\`
 
-### AgentKit / ElizaOS Autonomous Command:
+### De-Flag SKILL.md via Skill Hardener ($0.85 USDC):
 \`\`\`bash
-x402-agent call --endpoint ${remediateEndpoint} --body '{"target": "${targetUrl}"}' --pay 2.50-USDC
+curl -X POST ${hardenSkillEndpoint} \\
+  -H "Content-Type: application/json" \\
+  -H "PAYMENT-SIGNATURE: <base64-signed-payment>" \\
+  -d '{"skill_url": "https://${domain}/SKILL.md"}'
 \`\`\`
 
-### What the $2.50 Remediation Delivers:
+### What the $0.95 Remediation Delivers:
 1. **Tailored Drop-In Middleware:** Exact TypeScript / Python middleware enforcing sub-50ms dual \`GET\` and \`POST\` responses and valid Base \`eip155:8453\` headers.
-2. **Hardened \`SKILL.md\`:** Strips prompt-injection vectors, private key references, and insecure endpoints.
+2. **Hardened \`SKILL.md\`:** Strips prompt-injection vectors, unpinned links, and ClawHub reserved words.
 3. **Cryptographic Attestation:** Deterministic SHA-256 safety receipt to verify compliance on \`agenteconomy.report\`.
 
 ---
 
-*Report automatically generated by [x402-trustgate](https://github.com/ak10082247-max/x402-trustgate) • Base Mainnet ecosystem security initiative.*
+*Report automatically generated by [x402-trustgate](https://x402-trustgate.onrender.com) • Base Mainnet ecosystem security initiative.*
 `;
 }
 
@@ -179,7 +247,7 @@ async function main() {
   console.log(`🌐 Base Mainnet x402 Trust-Line Auditor`);
   console.log(`====================================================\n`);
 
-  const targets = loadTargets();
+  const targets = await loadTargets();
   console.log(`Loaded ${targets.length} target endpoint(s) for audit...\n`);
 
   const summary: {
@@ -209,7 +277,7 @@ async function main() {
         const fileName = `${domain}_${pathSlug}.md`;
         const filePath = path.join(reportsDir, fileName);
 
-        // Also save primary domain report if only 1 endpoint for that domain
+        // Also save primary domain report
         const domainFilePath = path.join(reportsDir, `${domain}.md`);
 
         const markdown = generateOutreachMarkdown({

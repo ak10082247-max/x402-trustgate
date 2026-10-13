@@ -41,7 +41,8 @@ app.get('/', (c) => {
     },
     localEndpoints: [
       { path: '/v1/diagnose', methods: ['GET'], price: 'FREE (200 OK)', description: 'x402 Trust-Line latency, dual-method, and header audit hook' },
-      { path: '/v1/remediate', methods: ['GET', 'POST'], price: '2.50 USDC', description: 'Unlock header diffs, custom drop-in middleware patch, and sanitized SKILL.md' },
+      { path: '/v1/remediate', methods: ['GET', 'POST'], price: '0.95 USDC', description: 'Unlock header diffs, custom drop-in middleware patch, and sanitized SKILL.md' },
+      { path: '/v1/harden-skill', methods: ['GET', 'POST'], price: '0.85 USDC', description: 'De-flag and harden raw SKILL.md for ClawHub and AgentEconomy static scanner compliance' },
       { path: '/v1/safefetch', methods: ['GET', 'POST'], price: '0.03 USDC', description: 'Single-hop DOM injection-stripped web fetcher with cryptographic data envelope' },
       { path: '/v1/trust/verify', methods: ['GET', 'POST'], price: '0.005 USDC', description: 'AI agent trust & sybil resistance gate' },
       { path: '/v1/gate/authorize', methods: ['GET', 'POST'], price: '0.010 USDC', description: 'Agent spending & policy gate' },

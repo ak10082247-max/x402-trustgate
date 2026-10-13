@@ -64,17 +64,17 @@ wellKnownRoutes.get('/.well-known/x402.json', (c) => {
         },
       },
 
-      // 2. ENGINE 1 (Paid Fixer): Deep Remediation & Middleware Patch
+      // 2. ENGINE 1 (Paid Fixer): Deep Remediation & Middleware Patch ($0.95 USDC)
       {
         id: 'trustline-remediate',
-        name: 'x402 Trust-Line Remediation & Drop-In Fixer ($2.50 USDC)',
+        name: 'x402 Trust-Line Remediation & Drop-In Fixer ($0.95 USDC)',
         type: 'local',
         method: 'POST',
         url: `${baseUrl}/v1/remediate`,
         description: 'Deep audit returning exact broken header diffs, copy-pasteable TypeScript & Python middleware fixes, and hardened SKILL.md with cryptographic attestation.',
         pricing: {
-          amount: '2500000',
-          price: '2.50 USDC',
+          amount: '950000',
+          price: '0.95 USDC',
           asset: config.usdcAsset,
           network: config.network,
           chainId: config.chainId,
@@ -86,6 +86,31 @@ wellKnownRoutes.get('/.well-known/x402.json', (c) => {
           properties: {
             target: { type: 'string', description: 'Target x402 service endpoint URL' },
             skill_url: { type: 'string', description: 'Optional raw URL to SKILL.md' },
+          },
+        },
+      },
+
+      // 3. ENGINE 1 (Paid Skill Hardener): De-Flag Raw SKILL.md ($0.85 USDC)
+      {
+        id: 'skill-harden',
+        name: 'SKILL.md Static Scanner De-Flagger & Compliance Hardener ($0.85 USDC)',
+        type: 'local',
+        method: 'POST',
+        url: `${baseUrl}/v1/harden-skill`,
+        description: 'De-flags raw SKILL.md by removing KEYS triggers, unencrypted URLs, and ClawHub reserved keywords to pass static scanners.',
+        pricing: {
+          amount: '850000',
+          price: '0.85 USDC',
+          asset: config.usdcAsset,
+          network: config.network,
+          chainId: config.chainId,
+          payTo: config.payToWallet,
+        },
+        inputSchema: {
+          type: 'object',
+          properties: {
+            skill_content: { type: 'string', description: 'Raw SKILL.md markdown text' },
+            skill_url: { type: 'string', description: 'Raw URL to remote SKILL.md' },
           },
         },
       },

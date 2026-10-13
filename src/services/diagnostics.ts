@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { hardenSkillMd } from './skillHardener.js';
 
 export interface DiagnosticTargetProbe {
   url: string;
@@ -443,11 +444,7 @@ export async function runDiagnostics(
       }
 
       // Generate sanitized SKILL.md
-      sanitizedSkillContent = rawSkillContent
-        .replace(/http:\/\//gi, 'https://')
-        .replace(/PRIVATE_KEY/g, 'SECURE_VAULT_KEY_REF')
-        .replace(/(\b\w+=\b)0x[a-f0-9]{64}/gi, '$1[REDACTED_USE_VAULT]')
-        + `\n\n<!-- Hardened by x402-trustgate: Strict data boundary tags enforced. Sanitized at ${new Date().toISOString()} -->\n`;
+      sanitizedSkillContent = hardenSkillMd(rawSkillContent).hardenedSkill;
     }
   }
 
@@ -563,9 +560,9 @@ async def x402_guard(request: Request):
     },
     remediationLocked: true,
     unlockInstructions:
-      'Call POST /v1/remediate with x402 payment ($2.50 USDC on Base) to unlock exact failed header diffs, drop-in middleware fix code, and a sanitized SKILL.md.',
+      'Call POST /v1/remediate with x402 payment ($0.95 USDC on Base) to unlock exact failed header diffs, drop-in middleware fix code, and a sanitized SKILL.md. Or call POST /v1/harden-skill ($0.85 USDC) to de-flag raw SKILL.md files.',
     unlockEndpoint: '/v1/remediate',
-    cost: '$2.50 USDC (2500000 atomic units, eip155:8453)',
+    cost: '$0.95 USDC (950000 atomic units, eip155:8453)',
     timestamp: new Date().toISOString(),
   };
 

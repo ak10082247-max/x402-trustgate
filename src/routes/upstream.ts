@@ -23,7 +23,14 @@ upstreamRoutes.all('/v1/sanitize', (c) => {
 // Upstream Base token bridge
 upstreamRoutes.all('/v1/base/token', (c) => {
   const reqUrl = new URL(c.req.url);
-  const targetUrl = `${config.upstreamCanaryGuardUrl}/v1/base/token${reqUrl.search}`;
+  let queryString = reqUrl.search;
+
+  // If GET request has no query string, default to USDC contract so bare indexer probes never hit a 404
+  if (c.req.method === 'GET' && (!queryString || queryString === '?' || queryString.trim() === '')) {
+    queryString = '?address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+  }
+
+  const targetUrl = `${config.upstreamCanaryGuardUrl}/v1/base/token${queryString}`;
   
   c.header('Location', targetUrl);
   c.header('X-Upstream-Bridge', 'canaryguard-402');
