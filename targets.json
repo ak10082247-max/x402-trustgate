@@ -1,0 +1,5 @@
+[
+  "https://canaryguard-402.onrender.com/v1/sanitize",
+  "https://canaryguard-402.onrender.com/v1/base/token",
+  "https://httpbin.org/status/405"
+]
