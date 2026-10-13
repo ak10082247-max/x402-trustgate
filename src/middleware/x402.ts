@@ -149,6 +149,8 @@ function getDefaultBazaarInfo(path: string, description: string): X402BazaarInfo
   };
 }
 
+export const DEFAULT_PAY_TO_WALLET = '0x73279fa4BadA7CAC888c62CDa4f5c8104765f6f1';
+
 /**
  * Creates dual-compatible x402 V1 + V2 payment enforcement middleware
  */
@@ -162,6 +164,7 @@ export const x402Payment = (options: X402Options): MiddlewareHandler => {
     const resourceUrl = `${protoHeader}://${hostHeader}${path}`;
 
     const maxTimeout = options.maxTimeoutSeconds || 300;
+    const payToWallet = process.env.PAY_TO_WALLET || config.payToWallet || DEFAULT_PAY_TO_WALLET;
 
     const acceptItem: X402AcceptItem = {
       scheme: 'exact',
@@ -171,7 +174,7 @@ export const x402Payment = (options: X402Options): MiddlewareHandler => {
       resource: resourceUrl,
       description: options.description,
       mimeType: 'application/json',
-      payTo: config.payToWallet,
+      payTo: payToWallet,
       maxTimeoutSeconds: maxTimeout,
       asset: config.usdcAsset, // 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
       extra: {
@@ -229,7 +232,7 @@ export const x402Payment = (options: X402Options): MiddlewareHandler => {
       c.header('PAYMENT-REQUIRED', base64Requirement);
       c.header('X-Payment-Required', base64Requirement);
       c.header('X-402-Version', '2');
-      c.header('X-402-Payment-To', config.payToWallet);
+      c.header('X-402-Payment-To', payToWallet);
       c.header('X-402-Amount', options.priceUsdc);
       c.header('X-402-Amount-Units', options.amountUnits);
       c.header('X-402-Asset', config.usdcAsset);
@@ -274,6 +277,7 @@ export const x402Payment = (options: X402Options): MiddlewareHandler => {
       const settlementEncoded = Buffer.from(JSON.stringify(settlement)).toString('base64');
       c.header('PAYMENT-RESPONSE', settlementEncoded);
       c.header('X-Payment-Response', settlementEncoded);
+      c.header('X-PAYMENT-RESPONSE', settlementEncoded);
       c.header('X-402-Version', '2');
 
       // Store settlement context for route handler
@@ -304,6 +308,7 @@ async function verifyPaymentWithFacilitator(params: {
   resource: string;
 }): Promise<X402Settlement> {
   const facilitatorBase = config.x402FacilitatorUrl;
+  const payToWallet = process.env.PAY_TO_WALLET || config.payToWallet || DEFAULT_PAY_TO_WALLET;
 
   // 1. ISOLATE TEST BYPASS STRICTLY TO NODE_ENV === 'test'
   if (process.env.NODE_ENV === 'test') {
@@ -316,7 +321,7 @@ async function verifyPaymentWithFacilitator(params: {
         success: true,
         network: config.network,
         asset: config.usdcAsset,
-        payTo: config.payToWallet,
+        payTo: payToWallet,
         amount: params.requirement.maxAmountRequired,
         txHash: `0xsimulated_${Date.now().toString(16)}_${Math.random().toString(16).slice(2, 10)}`,
         settledAt: new Date().toISOString(),
@@ -353,7 +358,7 @@ async function verifyPaymentWithFacilitator(params: {
     resource: params.resource,
     network: config.network,
     asset: config.usdcAsset,
-    payTo: config.payToWallet,
+    payTo: payToWallet,
   };
 
   const controller = new AbortController();
@@ -378,7 +383,7 @@ async function verifyPaymentWithFacilitator(params: {
         success: false,
         network: config.network,
         asset: config.usdcAsset,
-        payTo: config.payToWallet,
+        payTo: payToWallet,
         amount: params.requirement.maxAmountRequired,
         txHash: '',
         settledAt: '',
@@ -396,7 +401,7 @@ async function verifyPaymentWithFacilitator(params: {
         success: false,
         network: config.network,
         asset: config.usdcAsset,
-        payTo: config.payToWallet,
+        payTo: payToWallet,
         amount: params.requirement.maxAmountRequired,
         txHash: '',
         settledAt: '',
@@ -424,7 +429,7 @@ async function verifyPaymentWithFacilitator(params: {
         success: false,
         network: config.network,
         asset: config.usdcAsset,
-        payTo: config.payToWallet,
+        payTo: payToWallet,
         amount: params.requirement.maxAmountRequired,
         txHash: '',
         settledAt: '',
@@ -443,7 +448,7 @@ async function verifyPaymentWithFacilitator(params: {
         success: false,
         network: config.network,
         asset: config.usdcAsset,
-        payTo: config.payToWallet,
+        payTo: payToWallet,
         amount: params.requirement.maxAmountRequired,
         txHash: '',
         settledAt: '',
@@ -462,7 +467,7 @@ async function verifyPaymentWithFacilitator(params: {
       success: true,
       network: settleData.network || config.network,
       asset: settleData.asset || config.usdcAsset,
-      payTo: config.payToWallet,
+      payTo: payToWallet,
       amount: settleData.amount || params.requirement.maxAmountRequired,
       txHash,
       settledAt: settleData.settledAt || new Date().toISOString(),
@@ -475,7 +480,7 @@ async function verifyPaymentWithFacilitator(params: {
       success: false,
       network: config.network,
       asset: config.usdcAsset,
-      payTo: config.payToWallet,
+      payTo: payToWallet,
       amount: params.requirement.maxAmountRequired,
       txHash: '',
       settledAt: '',

@@ -18,4 +18,4 @@ services:
       - key: X402_FACILITATOR_URL
         value: https://x402.org/facilitator
       - key: PAY_TO_WALLET
-        sync: false
+        value: 0x73279fa4BadA7CAC888c62CDa4f5c8104765f6f1
