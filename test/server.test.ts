@@ -152,3 +152,108 @@ test('7. Discovery: GET /.well-known/x402.json catalog references local & upstre
   assert.equal(upstreamSanitize.payment_recipient, config.payToWallet);
   assert.equal(upstreamSanitize.bridgeRedirectStatus, 307);
 });
+
+test('8. Engine 1: GET /v1/diagnose runs live probe against upstream CanaryGuard and returns 200 OK teaser', async () => {
+  const target = `${config.upstreamCanaryGuardUrl}/v1/sanitize`;
+  const res = await app.request(`/v1/diagnose?target=${encodeURIComponent(target)}`);
+  assert.equal(res.status, 200);
+
+  const teaser = await res.json();
+  assert.equal(teaser.target, target);
+  assert.ok(teaser.estimatedTrustTier);
+  assert.ok(typeof teaser.criticalBlockersCount === 'number');
+  assert.ok(Array.isArray(teaser.symptomSummary));
+  assert.equal(teaser.remediationLocked, true);
+  assert.ok(teaser.unlockInstructions.includes('POST /v1/remediate'));
+  assert.ok(teaser.cost.includes('2.50'));
+});
+
+test('9. Engine 1: GET & POST /v1/remediate unauthenticated return 402 with $2.50 USDC challenge', async () => {
+  // GET /v1/remediate
+  const getRes = await app.request('/v1/remediate?target=https://example.com/v1');
+  assert.equal(getRes.status, 402);
+  assert.ok(getRes.headers.get('PAYMENT-REQUIRED'));
+  const getBody = await getRes.json();
+  assert.equal(getBody.accepts[0].maxAmountRequired, '2500000');
+  assert.equal(getBody.accepts[0].network, 'eip155:8453');
+
+  // POST /v1/remediate
+  const postRes = await app.request('/v1/remediate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target: 'https://example.com/v1' }),
+  });
+  assert.equal(postRes.status, 402);
+  assert.ok(postRes.headers.get('PAYMENT-REQUIRED'));
+  const postBody = await postRes.json();
+  assert.equal(postBody.accepts[0].maxAmountRequired, '2500000');
+});
+
+test('10. Engine 1: POST /v1/remediate with valid payment returns full deep remediation report', async () => {
+  const target = `${config.upstreamCanaryGuardUrl}/v1/sanitize`;
+  const res = await app.request('/v1/remediate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-PAYMENT': 'valid_test_signature',
+    },
+    body: JSON.stringify({ target }),
+  });
+
+  assert.equal(res.status, 200);
+  assert.ok(res.headers.get('PAYMENT-RESPONSE'));
+
+  const data = await res.json();
+  assert.equal(data.status, 'success');
+  assert.ok(data.remediation);
+  assert.equal(data.remediation.target, target);
+  assert.ok(data.remediation.exactHeaderDiffs);
+  assert.ok(Array.isArray(data.remediation.middlewareFixCode));
+  assert.ok(data.remediation.middlewareFixCode.length >= 2);
+  assert.ok(data.remediation.canaryAuditAttestation.startsWith('canary-attest-v1-'));
+});
+
+test('11. Engine 2: GET & POST /v1/safefetch unauthenticated return 402 with $0.03 USDC challenge', async () => {
+  // GET /v1/safefetch
+  const getRes = await app.request('/v1/safefetch?url=https://example.com');
+  assert.equal(getRes.status, 402);
+  assert.ok(getRes.headers.get('PAYMENT-REQUIRED'));
+  const getBody = await getRes.json();
+  assert.equal(getBody.accepts[0].maxAmountRequired, '30000');
+  assert.equal(getBody.accepts[0].network, 'eip155:8453');
+
+  // POST /v1/safefetch
+  const postRes = await app.request('/v1/safefetch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: 'https://example.com' }),
+  });
+  assert.equal(postRes.status, 402);
+  assert.ok(postRes.headers.get('PAYMENT-REQUIRED'));
+  const postBody = await postRes.json();
+  assert.equal(postBody.accepts[0].maxAmountRequired, '30000');
+});
+
+test('12. Engine 2: POST /v1/safefetch with valid payment fetches page and returns strict data role envelope', async () => {
+  const res = await app.request('/v1/safefetch', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-PAYMENT': 'valid_test_signature',
+    },
+    body: JSON.stringify({
+      url: `${config.upstreamCanaryGuardUrl}/`,
+    }),
+  });
+
+  assert.equal(res.status, 200);
+  assert.ok(res.headers.get('PAYMENT-RESPONSE'));
+
+  const body = await res.json();
+  assert.equal(body.status, 'success');
+  assert.ok(body.data);
+  assert.ok(body.data.envelope.includes('<untrusted_data_envelope nonce="'));
+  assert.ok(body.data.envelope.includes('role="external_untrusted_data"'));
+  assert.ok(typeof body.data.threatScore === 'number');
+  assert.ok(body.data.cleanMarkdown.length > 0);
+});

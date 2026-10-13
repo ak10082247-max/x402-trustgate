@@ -16,7 +16,7 @@ wellKnownRoutes.get('/.well-known/x402.json', (c) => {
 
   const catalog = {
     name: 'x402-trustgate',
-    description: 'Autonomous AI agent trust verification gate, sybil resistance, policy authorization, and security bridge on Base mainnet.',
+    description: 'Autonomous AI agent trust verification gate, x402 trust-line auditor, and secure web envelope bridge on Base mainnet.',
     version: config.serviceVersion,
     x402Version: 2,
     facilitator: config.x402FacilitatorUrl,
@@ -38,7 +38,85 @@ wellKnownRoutes.get('/.well-known/x402.json', (c) => {
       payTo: config.payToWallet,
     },
     endpoints: [
-      // 1. Local High-Margin Endpoint: Trust Verification Gate
+      // 1. ENGINE 1 (Free Hook): x402 Trust-Line Diagnosis
+      {
+        id: 'trustline-diagnose',
+        name: 'x402 Trust-Line Auditor & Cold-Start Diagnostic (Free Hook)',
+        type: 'local',
+        method: 'GET',
+        url: `${baseUrl}/v1/diagnose`,
+        description: 'Runs real live latency probe, dual-method GET/POST check, x402 v2 header validation, and SKILL.md risk scan to assess BBB Trust-Line status.',
+        pricing: {
+          amount: '0',
+          price: 'FREE (200 OK)',
+          asset: config.usdcAsset,
+          network: config.network,
+          chainId: config.chainId,
+          payTo: config.payToWallet,
+        },
+        inputSchema: {
+          type: 'object',
+          required: ['target'],
+          properties: {
+            target: { type: 'string', description: 'Target x402 service URL to probe' },
+            skill_url: { type: 'string', description: 'Optional raw URL to SKILL.md for static risk analysis' },
+          },
+        },
+      },
+
+      // 2. ENGINE 1 (Paid Fixer): Deep Remediation & Middleware Patch
+      {
+        id: 'trustline-remediate',
+        name: 'x402 Trust-Line Remediation & Drop-In Fixer ($2.50 USDC)',
+        type: 'local',
+        method: 'POST',
+        url: `${baseUrl}/v1/remediate`,
+        description: 'Deep audit returning exact broken header diffs, copy-pasteable TypeScript & Python middleware fixes, and hardened SKILL.md with cryptographic attestation.',
+        pricing: {
+          amount: '2500000',
+          price: '2.50 USDC',
+          asset: config.usdcAsset,
+          network: config.network,
+          chainId: config.chainId,
+          payTo: config.payToWallet,
+        },
+        inputSchema: {
+          type: 'object',
+          required: ['target'],
+          properties: {
+            target: { type: 'string', description: 'Target x402 service endpoint URL' },
+            skill_url: { type: 'string', description: 'Optional raw URL to SKILL.md' },
+          },
+        },
+      },
+
+      // 3. ENGINE 2: Single-Hop SafeFetch with Cryptographic Envelope
+      {
+        id: 'safefetch-envelope',
+        name: 'Single-Hop SafeFetch & Strict Data Envelope ($0.03 USDC)',
+        type: 'local',
+        method: 'POST',
+        url: `${baseUrl}/v1/safefetch`,
+        description: 'Fetches untrusted web pages, strips hidden DOM injection nodes, converts to clean Markdown, and wraps output in a strict cryptographic data role boundary.',
+        pricing: {
+          amount: '30000',
+          price: '0.03 USDC',
+          asset: config.usdcAsset,
+          network: config.network,
+          chainId: config.chainId,
+          payTo: config.payToWallet,
+        },
+        inputSchema: {
+          type: 'object',
+          required: ['url'],
+          properties: {
+            url: { type: 'string', description: 'Target public web URL to extract and sanitize' },
+            maxContentLength: { type: 'number', default: 50000 },
+          },
+        },
+      },
+
+      // 4. Local High-Margin Endpoint: Trust Verification Gate
       {
         id: 'trust-verify',
         name: 'Agent Trust & Reputation Verification Gate',
@@ -57,41 +135,14 @@ wellKnownRoutes.get('/.well-known/x402.json', (c) => {
         inputSchema: {
           type: 'object',
           properties: {
-            agentAddress: { type: 'string', description: 'Agent EVM address or signer wallet' },
-            action: { type: 'string', description: 'Action type to evaluate (e.g. transfer, call, sign)' },
-            promptText: { type: 'string', description: 'Agent prompt or instruction text to audit' },
-            targetAddress: { type: 'string', description: 'Target contract or destination address' },
-            callerDomain: { type: 'string', description: 'Origin domain or tool calling origin' },
-          },
-        },
-        extensions: {
-          bazaar: {
-            info: {
-              input: {
-                type: 'http',
-                bodyType: 'json',
-                body: {
-                  agentAddress: '0x1111111111111111111111111111111111111111',
-                  action: 'execute_swap',
-                  promptText: 'Check agent credentials and verify allowance limits',
-                },
-              },
-              output: {
-                type: 'json',
-                example: {
-                  status: 'approved',
-                  trustScore: 0.98,
-                  riskLevel: 'clean',
-                  verdict: 'Agent passed reputation and policy gate.',
-                  receipt: 'trustgate-v1-abcdef0123456789',
-                },
-              },
-            },
+            agentAddress: { type: 'string' },
+            action: { type: 'string' },
+            promptText: { type: 'string' },
           },
         },
       },
 
-      // 2. Local High-Margin Endpoint: Spending & Policy Authorization Gate
+      // 5. Local High-Margin Endpoint: Spending & Policy Authorization Gate
       {
         id: 'gate-authorize',
         name: 'Autonomous Action Spending & Policy Authorization Gate',
@@ -107,36 +158,9 @@ wellKnownRoutes.get('/.well-known/x402.json', (c) => {
           chainId: config.chainId,
           payTo: config.payToWallet,
         },
-        inputSchema: {
-          type: 'object',
-          properties: {
-            agentAddress: { type: 'string' },
-            action: { type: 'string' },
-            targetAddress: { type: 'string' },
-            params: { type: 'object' },
-          },
-        },
       },
 
-      // 3. Local High-Margin Endpoint: Reputation Score
-      {
-        id: 'trust-score',
-        name: 'Agent Wallet Trust Score',
-        type: 'local',
-        method: 'GET',
-        url: `${baseUrl}/v1/trust/score`,
-        description: 'Instant on-chain and behavioral trust metric calculation for agent addresses.',
-        pricing: {
-          amount: '2000',
-          price: '0.002 USDC',
-          asset: config.usdcAsset,
-          network: config.network,
-          chainId: config.chainId,
-          payTo: config.payToWallet,
-        },
-      },
-
-      // 4. Upstream CanaryGuard Endpoint (Under the same wallet family)
+      // 6. Upstream CanaryGuard Endpoint (Under the same wallet family)
       {
         id: 'canaryguard-sanitize',
         name: 'CanaryGuard Prompt-Injection Firewall & Honeypot Scrubber',
@@ -165,7 +189,7 @@ wellKnownRoutes.get('/.well-known/x402.json', (c) => {
         },
       },
 
-      // 5. Upstream CanaryGuard Base Token bridge
+      // 7. Upstream CanaryGuard Base Token bridge
       {
         id: 'canaryguard-base-token',
         name: 'CanaryGuard Base Token Bridge',
@@ -189,7 +213,7 @@ wellKnownRoutes.get('/.well-known/x402.json', (c) => {
       ],
     },
     mcp: {
-      tools: ['trustgate_verify', 'trustgate_authorize', 'canary_sanitize'],
+      tools: ['trustgate_diagnose', 'trustgate_remediate', 'trustgate_safefetch', 'canary_sanitize'],
     },
   };
 

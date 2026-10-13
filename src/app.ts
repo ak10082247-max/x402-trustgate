@@ -5,6 +5,8 @@ import { healthRoutes } from './routes/health.js';
 import { wellKnownRoutes } from './routes/wellKnown.js';
 import { upstreamRoutes } from './routes/upstream.js';
 import { trustgateRoutes } from './routes/trustgate.js';
+import { auditorRoutes } from './routes/auditor.js';
+import { safeFetchRoutes } from './routes/safeFetchRoute.js';
 
 export const app = new Hono();
 
@@ -38,9 +40,12 @@ app.get('/', (c) => {
       redirectCode: 307,
     },
     localEndpoints: [
-      { path: '/v1/trust/verify', methods: ['GET', 'POST'], price: '0.005 USDC' },
-      { path: '/v1/gate/authorize', methods: ['GET', 'POST'], price: '0.010 USDC' },
-      { path: '/v1/trust/score', methods: ['GET', 'POST'], price: '0.002 USDC' },
+      { path: '/v1/diagnose', methods: ['GET'], price: 'FREE (200 OK)', description: 'x402 Trust-Line latency, dual-method, and header audit hook' },
+      { path: '/v1/remediate', methods: ['GET', 'POST'], price: '2.50 USDC', description: 'Unlock header diffs, custom drop-in middleware patch, and sanitized SKILL.md' },
+      { path: '/v1/safefetch', methods: ['GET', 'POST'], price: '0.03 USDC', description: 'Single-hop DOM injection-stripped web fetcher with cryptographic data envelope' },
+      { path: '/v1/trust/verify', methods: ['GET', 'POST'], price: '0.005 USDC', description: 'AI agent trust & sybil resistance gate' },
+      { path: '/v1/gate/authorize', methods: ['GET', 'POST'], price: '0.010 USDC', description: 'Agent spending & policy gate' },
+      { path: '/v1/trust/score', methods: ['GET', 'POST'], price: '0.002 USDC', description: 'Instant wallet reputation metrics' },
     ],
   });
 });
@@ -50,6 +55,8 @@ app.route('', healthRoutes);
 app.route('', wellKnownRoutes);
 app.route('', upstreamRoutes);
 app.route('', trustgateRoutes);
+app.route('', auditorRoutes);
+app.route('', safeFetchRoutes);
 
 // Fallback 404 handler
 app.notFound((c) => {
