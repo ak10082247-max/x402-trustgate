@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: x402-trustgate
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: UPSTREAM_CANARYGUARD_URL
+        value: https://canaryguard-402.onrender.com
+      - key: PUBLIC_TRUSTGATE_URL
+        value: https://x402-trustgate.onrender.com
+      - key: X402_FACILITATOR_URL
+        value: https://x402.org/facilitator
+      - key: PAY_TO_WALLET
+        sync: false
