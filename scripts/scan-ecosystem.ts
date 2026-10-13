@@ -154,8 +154,8 @@ function generateServiceOutreachMarkdown(params: {
   const { targetUrl, domain, estimatedTrustTier, criticalBlockersCount, checks, symptoms, ttfbMs } = params;
   const timestamp = new Date().toISOString();
 
-  // Production trustgate URL - never fallback to localhost:3000 in outreach reports
-  const serviceHost = process.env.PUBLIC_TRUSTGATE_URL || 'https://x402-trustgate.onrender.com';
+  // Verified live public HTTPS URL
+  const serviceHost = (process.env.PUBLIC_TRUSTGATE_URL || 'https://ireland-once-opposed-stores.trycloudflare.com').replace(/\/+$/, '');
   const diagnoseLink = `${serviceHost}/v1/diagnose?target=${encodeURIComponent(targetUrl)}`;
   const remediateEndpoint = `${serviceHost}/v1/remediate`;
   const hardenSkillEndpoint = `${serviceHost}/v1/harden-skill`;
@@ -253,7 +253,7 @@ curl -X POST ${hardenSkillEndpoint} \\
  * Formats a clean outreach markdown report for flagged ClawHub skills
  */
 function generateSkillOutreachMarkdown(skill: SkillDiagnosticSummary): string {
-  const serviceHost = process.env.PUBLIC_TRUSTGATE_URL || 'https://x402-trustgate.onrender.com';
+  const serviceHost = (process.env.PUBLIC_TRUSTGATE_URL || 'https://ireland-once-opposed-stores.trycloudflare.com').replace(/\/+$/, '');
   const diagnoseLink = `${serviceHost}/v1/diagnose?skill=${encodeURIComponent(skill.skill)}`;
   const hardenEndpoint = `${serviceHost}/v1/harden-skill`;
 

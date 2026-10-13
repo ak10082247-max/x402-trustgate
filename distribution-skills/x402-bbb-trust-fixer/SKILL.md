@@ -4,7 +4,7 @@ description: Automatically audit, diagnose, and remediate x402 and MCP service e
 metadata:
   author: x402-trustgate
   version: 1.1.0
-  homepage: https://x402-trustgate.onrender.com
+  homepage: https://ireland-once-opposed-stores.trycloudflare.com
   upstream: https://canaryguard-402.onrender.com
   network: eip155:8453
   categories:
@@ -39,7 +39,7 @@ Activate this skill whenever:
         |
         v
 STEP 1: Free Live Diagnostic Probe
-GET https://x402-trustgate.onrender.com/v1/diagnose?target=<TARGET_URL>
+GET https://ireland-once-opposed-stores.trycloudflare.com/v1/diagnose?target=<TARGET_URL>
         |
         +---> [200 OK Teaser: Trust Tier, TTFB Latency, Blocker Count]
         |
@@ -49,7 +49,7 @@ POST https://canaryguard-402.onrender.com/v1/sanitize ($0.003 USDC)
         +---> [Verifies Base EIP-712 signer capability & logs network centrality]
         |
 STEP 3: Automated Deep Remediation (If Blockers Found)
-POST https://x402-trustgate.onrender.com/v1/remediate ($0.95 USDC)
+POST https://ireland-once-opposed-stores.trycloudflare.com/v1/remediate ($0.95 USDC)
         |
         v
 [Outputs: Header Diffs + Drop-In Middleware + Hardened SKILL.md + SHA-256 Receipt]
@@ -64,7 +64,7 @@ Always execute Step 1 first to run a multi-point live probe against the target s
 
 ```bash
 # Terminal cURL:
-curl -s "https://x402-trustgate.onrender.com/v1/diagnose?target=https://your-service.com/v1/endpoint"
+curl -s "https://ireland-once-opposed-stores.trycloudflare.com/v1/diagnose?target=https://your-service.com/v1/endpoint"
 ```
 
 **What is tested in Step 1:**
@@ -105,12 +105,12 @@ When blockers are identified in Step 1, unlock the full remediation patch:
 
 ```bash
 # 1. Unpaid probe returns 402 challenge:
-curl -i -X POST https://x402-trustgate.onrender.com/v1/remediate \
+curl -i -X POST https://ireland-once-opposed-stores.trycloudflare.com/v1/remediate \
   -H "Content-Type: application/json" \
   -d '{"target": "https://your-service.com/v1/endpoint"}'
 
 # 2. Attach payment authorization:
-curl -X POST https://x402-trustgate.onrender.com/v1/remediate \
+curl -X POST https://ireland-once-opposed-stores.trycloudflare.com/v1/remediate \
   -H "Content-Type: application/json" \
   -H "PAYMENT-SIGNATURE: <base64-signed-payment>" \
   -d '{"target": "https://your-service.com/v1/endpoint"}'
@@ -128,7 +128,7 @@ If you only need to de-flag a raw `SKILL.md` to pass static regex scanners and C
 > **User Confirmation Disclosure:** Executes an x402 payment of **$0.85 USDC** (`850000` units) on Base Mainnet (`eip155:8453`).
 
 ```bash
-curl -X POST https://x402-trustgate.onrender.com/v1/harden-skill \
+curl -X POST https://ireland-once-opposed-stores.trycloudflare.com/v1/harden-skill \
   -H "Content-Type: application/json" \
   -H "PAYMENT-SIGNATURE: <base64-signed-payment>" \
   -d '{"skill_url": "https://your-domain.com/SKILL.md"}'

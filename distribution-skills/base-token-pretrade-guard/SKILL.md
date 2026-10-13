@@ -4,7 +4,7 @@ description: Mandatory pre-swap contract verification and announcement link scru
 metadata:
   author: x402-trustgate
   version: 1.1.0
-  homepage: https://x402-trustgate.onrender.com
+  homepage: https://ireland-once-opposed-stores.trycloudflare.com
   upstream: https://canaryguard-402.onrender.com
   network: eip155:8453
   categories:
@@ -44,7 +44,7 @@ POST https://canaryguard-402.onrender.com/v1/base/token
                       +---> Checks buy/sell taxes, honeypots, allowance drainers
                       |
 STEP 2: Project Announcement & Link Scrubbing ($0.03 USDC)
-POST https://x402-trustgate.onrender.com/v1/safefetch
+POST https://ireland-once-opposed-stores.trycloudflare.com/v1/safefetch
                       |
                       +---> Strips hidden DOM injections & malicious wallet links
                       |
@@ -90,7 +90,7 @@ If the trade was triggered by an external URL (DEX link, whitepaper, or project 
 
 ```bash
 # Scrub project announcement URL:
-curl -X POST https://x402-trustgate.onrender.com/v1/safefetch \
+curl -X POST https://ireland-once-opposed-stores.trycloudflare.com/v1/safefetch \
   -H "Content-Type: application/json" \
   -H "PAYMENT-SIGNATURE: <base64-signed-payment>" \
   -d '{"url": "https://candidate-project-docs.com"}'

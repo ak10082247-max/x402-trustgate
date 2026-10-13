@@ -1,7 +1,7 @@
 # x402 Trust-Line Audit & Compliance Notice: places.use.x402atlas.com
 
 **Target Endpoint:** `https://places.use.x402atlas.com`  
-**Audit Timestamp:** `2026-10-13T22:25:27.339Z`  
+**Audit Timestamp:** `2026-10-13T23:24:59.065Z`  
 **Current Trust Tier:** **`Tier B`** (❌ BELOW BBB TRUST-LINE)  
 **Indexers Affected:** [agenteconomy.report](https://agenteconomy.report) • [roundhouseai.io](https://roundhouseai.io) • Coinbase CDP Bazaar
 
@@ -22,14 +22,14 @@ When an autonomous AI agent encounters these issues, transactions fail silently 
 
 | Category | Check Name | Status | Severity | Technical Details |
 | :--- | :--- | :--- | :--- | :--- |
-| `latency` | Cold-Start Latency Check | ✅ PASSED | `info` | TTFB was fast (299ms). |
+| `latency` | Cold-Start Latency Check | ✅ PASSED | `info` | TTFB was fast (305ms). |
 | `dual_method` | GET Method Compatibility | ✅ PASSED | `info` | GET probe returned expected status HTTP 200. |
 | `dual_method` | POST Probe Compatibility | ✅ PASSED | `info` | POST probe returned HTTP 405. |
 | `header_schema` | PAYMENT-REQUIRED Header Presence | ❌ FAILED | `critical` | Missing standard PAYMENT-REQUIRED header in 402 challenge. |
 | `discovery` | x402 Discovery Catalog | ✅ PASSED | `info` | Machine-readable catalog exists at /.well-known/x402.json. |
 
 **Latency Snapshot:**
-* **Measured TTFB:** `299ms` (Acceptable)
+* **Measured TTFB:** `305ms` (Acceptable)
 
 ---
 
@@ -37,11 +37,11 @@ When an autonomous AI agent encounters these issues, transactions fail silently 
 
 You can independently verify your endpoint's live compliance status at any time via our free zero-cost diagnostic hook:
 
-🔗 **[Run Live Verification Check](https://x402-trustgate.onrender.com/v1/diagnose?target=https%3A%2F%2Fplaces.use.x402atlas.com)**
+🔗 **[Run Live Verification Check](https://ireland-once-opposed-stores.trycloudflare.com/v1/diagnose?target=https%3A%2F%2Fplaces.use.x402atlas.com)**
 
 ```bash
 # Run free diagnostic test from your terminal:
-curl -s "https://x402-trustgate.onrender.com/v1/diagnose?target=https%3A%2F%2Fplaces.use.x402atlas.com"
+curl -s "https://ireland-once-opposed-stores.trycloudflare.com/v1/diagnose?target=https%3A%2F%2Fplaces.use.x402atlas.com"
 ```
 
 ---
@@ -56,12 +56,12 @@ We have generated an automated, copy-pasteable drop-in middleware patch (TypeScr
 
 ```bash
 # 1. Probe the remediation endpoint (returns HTTP 402 with Base Mainnet payment details):
-curl -i -X POST https://x402-trustgate.onrender.com/v1/remediate \
+curl -i -X POST https://ireland-once-opposed-stores.trycloudflare.com/v1/remediate \
   -H "Content-Type: application/json" \
   -d '{"target": "https://places.use.x402atlas.com"}'
 
 # 2. Attach Base Mainnet (eip155:8453) USDC payment authorization to unlock fix code:
-curl -X POST https://x402-trustgate.onrender.com/v1/remediate \
+curl -X POST https://ireland-once-opposed-stores.trycloudflare.com/v1/remediate \
   -H "Content-Type: application/json" \
   -H "PAYMENT-SIGNATURE: <base64-signed-payment>" \
   -d '{"target": "https://places.use.x402atlas.com"}'
@@ -69,7 +69,7 @@ curl -X POST https://x402-trustgate.onrender.com/v1/remediate \
 
 ### De-Flag SKILL.md via Skill Hardener ($0.85 USDC):
 ```bash
-curl -X POST https://x402-trustgate.onrender.com/v1/harden-skill \
+curl -X POST https://ireland-once-opposed-stores.trycloudflare.com/v1/harden-skill \
   -H "Content-Type: application/json" \
   -H "PAYMENT-SIGNATURE: <base64-signed-payment>" \
   -d '{"skill_url": "https://places.use.x402atlas.com/SKILL.md"}'

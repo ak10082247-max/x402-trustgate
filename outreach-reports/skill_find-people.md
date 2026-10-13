@@ -2,7 +2,7 @@
 
 **Target Skill:** `Find People (x402)` (`find-people`)  
 **Registry:** [clawhub](https://clawhub.ai/skills/find-people) • [agenteconomy.report](https://agenteconomy.report/k/find-people)  
-**Audit Timestamp:** `2026-10-13T22:25:30.043Z`  
+**Audit Timestamp:** `2026-10-13T23:25:01.973Z`  
 **Current Trust Tier:** **`Tier BB`** (❌ BELOW BBB TRUST-LINE)  
 **Flags Detected:** `KEYS`  
 **Downloads (All-Time):** 3605  
@@ -25,11 +25,11 @@ Because your skill was flagged with **KEYS**, it is currently capped at **Tier B
 
 You can independently verify this skill's compliance status at any time via our free zero-cost diagnostic hook:
 
-🔗 **[Run Live Skill Verification Check](https://x402-trustgate.onrender.com/v1/diagnose?skill=find-people)**
+🔗 **[Run Live Skill Verification Check](https://ireland-once-opposed-stores.trycloudflare.com/v1/diagnose?skill=find-people)**
 
 ```bash
 # Run free diagnostic test from your terminal:
-curl -s "https://x402-trustgate.onrender.com/v1/diagnose?skill=find-people"
+curl -s "https://ireland-once-opposed-stores.trycloudflare.com/v1/diagnose?skill=find-people"
 ```
 
 ---
@@ -48,12 +48,12 @@ We provide an automated drop-in rewriter for your `SKILL.md` that removes all tr
 
 ```bash
 # 1. Probe the harden-skill endpoint (returns HTTP 402 with Base Mainnet payment details):
-curl -i -X POST https://x402-trustgate.onrender.com/v1/harden-skill \
+curl -i -X POST https://ireland-once-opposed-stores.trycloudflare.com/v1/harden-skill \
   -H "Content-Type: application/json" \
   -d '{"skill": "find-people"}'
 
 # 2. Attach Base Mainnet USDC payment signature to unlock the sanitized SKILL.md:
-curl -X POST https://x402-trustgate.onrender.com/v1/harden-skill \
+curl -X POST https://ireland-once-opposed-stores.trycloudflare.com/v1/harden-skill \
   -H "Content-Type: application/json" \
   -H "PAYMENT-SIGNATURE: <base64-signed-payment>" \
   -d '{"skill": "find-people"}'

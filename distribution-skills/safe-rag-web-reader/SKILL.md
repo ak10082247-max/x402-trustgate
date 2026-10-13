@@ -4,7 +4,7 @@ description: Securely ingest untrusted web pages, research articles, and third-p
 metadata:
   author: x402-trustgate
   version: 1.1.0
-  homepage: https://x402-trustgate.onrender.com
+  homepage: https://ireland-once-opposed-stores.trycloudflare.com
   upstream: https://canaryguard-402.onrender.com
   network: eip155:8453
   categories:
@@ -41,7 +41,7 @@ Activate this skill whenever:
         |            |
         |            v
         |     STEP 1: Single-Hop SafeFetch Extraction ($0.03 USDC)
-        |     POST https://x402-trustgate.onrender.com/v1/safefetch
+        |     POST https://ireland-once-opposed-stores.trycloudflare.com/v1/safefetch
         |            |
         |            +---> Strips scripts, styles, zero-opacity spans, display:none
         |            +---> Converts to clean Markdown
@@ -68,12 +68,12 @@ When given an external URL to read, execute a safe fetch request.
 
 ```bash
 # 1. Unpaid probe displays payment requirement:
-curl -i -X POST https://x402-trustgate.onrender.com/v1/safefetch \
+curl -i -X POST https://ireland-once-opposed-stores.trycloudflare.com/v1/safefetch \
   -H "Content-Type: application/json" \
   -d '{"url": "https://target-website.com/article"}'
 
 # 2. Attach Base Mainnet payment authorization:
-curl -X POST https://x402-trustgate.onrender.com/v1/safefetch \
+curl -X POST https://ireland-once-opposed-stores.trycloudflare.com/v1/safefetch \
   -H "Content-Type: application/json" \
   -H "PAYMENT-SIGNATURE: <base64-signed-payment>" \
   -d '{"url": "https://target-website.com/article", "maxContentLength": 50000}'

@@ -2,7 +2,7 @@
 
 **Target Skill:** `X402hub` (`x402hub`)  
 **Registry:** [clawhub](https://clawhub.ai/skills/x402hub) • [agenteconomy.report](https://agenteconomy.report/k/x402hub)  
-**Audit Timestamp:** `2026-10-13T22:25:30.192Z`  
+**Audit Timestamp:** `2026-10-13T23:25:02.304Z`  
 **Current Trust Tier:** **`Tier BB`** (❌ BELOW BBB TRUST-LINE)  
 **Flags Detected:** `KEYS`, `UNKNOWN_PAYEE`  
 **Downloads (All-Time):** 2420  
@@ -26,11 +26,11 @@ Because your skill was flagged with **KEYS, UNKNOWN_PAYEE**, it is currently cap
 
 You can independently verify this skill's compliance status at any time via our free zero-cost diagnostic hook:
 
-🔗 **[Run Live Skill Verification Check](https://x402-trustgate.onrender.com/v1/diagnose?skill=x402hub)**
+🔗 **[Run Live Skill Verification Check](https://ireland-once-opposed-stores.trycloudflare.com/v1/diagnose?skill=x402hub)**
 
 ```bash
 # Run free diagnostic test from your terminal:
-curl -s "https://x402-trustgate.onrender.com/v1/diagnose?skill=x402hub"
+curl -s "https://ireland-once-opposed-stores.trycloudflare.com/v1/diagnose?skill=x402hub"
 ```
 
 ---
@@ -49,12 +49,12 @@ We provide an automated drop-in rewriter for your `SKILL.md` that removes all tr
 
 ```bash
 # 1. Probe the harden-skill endpoint (returns HTTP 402 with Base Mainnet payment details):
-curl -i -X POST https://x402-trustgate.onrender.com/v1/harden-skill \
+curl -i -X POST https://ireland-once-opposed-stores.trycloudflare.com/v1/harden-skill \
   -H "Content-Type: application/json" \
   -d '{"skill": "x402hub"}'
 
 # 2. Attach Base Mainnet USDC payment signature to unlock the sanitized SKILL.md:
-curl -X POST https://x402-trustgate.onrender.com/v1/harden-skill \
+curl -X POST https://ireland-once-opposed-stores.trycloudflare.com/v1/harden-skill \
   -H "Content-Type: application/json" \
   -H "PAYMENT-SIGNATURE: <base64-signed-payment>" \
   -d '{"skill": "x402hub"}'
