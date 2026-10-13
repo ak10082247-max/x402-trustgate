@@ -1,20 +1,19 @@
-[
-  "https://canaryguard-402.onrender.com/v1/sanitize",
-  "https://x402.onchainexpat.com",
-  "https://places.use.x402atlas.com",
-  "https://booaip.vercel.app",
-  "https://api.robinx.io",
-  "https://api.webbersites.com",
-  "https://ixs.finance",
-  "https://www.x402financialdata.com",
-  "https://api.demandex.dev",
-  "https://fairseal.io",
-  "https://x402-adsb.x402-adsb-worker.workers.dev",
-  "https://api.maxwellinternational.ai",
-  "https://numberintel.dev",
-  "https://x402.911fund.io",
-  "https://kushbitx.com",
-  "https://answerpool.io",
-  "https://city-table-clean.onrender.com",
-  "https://pyd.fi"
-]
+{
+  "services": [
+    "https://canaryguard-402.onrender.com/v1/sanitize",
+    "https://x402.onchainexpat.com",
+    "https://x402.press",
+    "https://x402.klimalabs.com",
+    "https://places.use.x402atlas.com",
+    "https://api.robinx.io",
+    "https://fairseal.io",
+    "https://numberintel.dev",
+    "https://pyd.fi"
+  ],
+  "skills": [
+    "find-people",
+    "x402-pay",
+    "x402hub",
+    "openclaw-x402-skill"
+  ]
+}

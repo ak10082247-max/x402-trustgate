@@ -1,12 +1,23 @@
 import { Context, MiddlewareHandler } from 'hono';
 import { config } from '../config.js';
 
+export interface X402BazaarInfo {
+  input: {
+    type: 'http';
+    method: 'POST' | 'GET';
+    body?: Record<string, any>;
+    queryParams?: Record<string, any>;
+  };
+  output: Record<string, any>;
+}
+
 export interface X402Options {
   priceUsdc: string;       // e.g. "0.005"
   amountUnits: string;     // e.g. "5000" (USDC has 6 decimals)
   description: string;
   resourcePath?: string;
   maxTimeoutSeconds?: number;
+  bazaarInfo?: X402BazaarInfo;
 }
 
 export interface X402AcceptItem {
@@ -35,6 +46,11 @@ export interface X402RequirementPayload {
     mimeType: string;
   };
   accepts: X402AcceptItem[];
+  extensions?: {
+    bazaar?: {
+      info?: X402BazaarInfo;
+    };
+  };
 }
 
 export interface X402Settlement {
@@ -47,6 +63,89 @@ export interface X402Settlement {
   settledAt: string;
   facilitator: string;
   payer?: string;
+}
+
+/**
+ * Returns default CDP Bazaar and Roundhouse AI input/output descriptor for a resource path
+ */
+function getDefaultBazaarInfo(path: string, description: string): X402BazaarInfo {
+  if (path.includes('remediate')) {
+    return {
+      input: {
+        type: 'http',
+        method: 'POST',
+        body: {
+          target: 'https://api.example.com/v1/paid-route',
+          skill_url: 'https://raw.githubusercontent.com/owner/repo/main/SKILL.md',
+        },
+      },
+      output: {
+        status: 'success',
+        remediation: {
+          target: 'https://api.example.com/v1/paid-route',
+          passed: true,
+          exactHeaderDiffs: { missingHeaders: [], malformedHeaders: {}, schemaErrors: [] },
+          middlewareFixCode: [
+            { language: 'typescript', filename: 'x402-middleware.ts', code: '...' },
+            { language: 'python', filename: 'x402_middleware.py', code: '...' },
+          ],
+        },
+      },
+    };
+  }
+  if (path.includes('harden-skill')) {
+    return {
+      input: {
+        type: 'http',
+        method: 'POST',
+        body: {
+          skill: 'find-people',
+          raw_skill: '---\nname: my-skill\n---\nProvide wallet signer...',
+        },
+      },
+      output: {
+        status: 'success',
+        hardenedSkill: '---\nname: my-skill\n---\nProvide managed x402 signer...',
+        fixesApplied: ['REPLACED_KEYS_TRIGGERS', 'ADDED_CANARYGUARD_PREFLIGHT'],
+      },
+    };
+  }
+  if (path.includes('safefetch')) {
+    return {
+      input: {
+        type: 'http',
+        method: 'POST',
+        body: {
+          url: 'https://example.com/article',
+        },
+      },
+      output: {
+        status: 'success',
+        data: {
+          envelope: '<untrusted_data_envelope nonce="..." role="external_untrusted_data" url="...">...</untrusted_data_envelope>',
+          threatScore: 0,
+          cleanMarkdown: 'Clean markdown text',
+        },
+      },
+    };
+  }
+  return {
+    input: {
+      type: 'http',
+      method: 'POST',
+      body: {
+        agentAddress: '0x1111111111111111111111111111111111111111',
+        action: 'transfer_usdc',
+      },
+    },
+    output: {
+      status: 'success',
+      evaluation: {
+        status: 'approved',
+        riskLevel: 'clean',
+      },
+    },
+  };
 }
 
 /**
@@ -80,6 +179,8 @@ export const x402Payment = (options: X402Options): MiddlewareHandler => {
       },
     };
 
+    const bazaarInfo = options.bazaarInfo || getDefaultBazaarInfo(path, options.description);
+
     const requirementPayload: X402RequirementPayload = {
       x402Version: 2,
       error: 'Payment required',
@@ -89,6 +190,11 @@ export const x402Payment = (options: X402Options): MiddlewareHandler => {
         mimeType: 'application/json',
       },
       accepts: [acceptItem],
+      extensions: {
+        bazaar: {
+          info: bazaarInfo,
+        },
+      },
     };
 
     const base64Requirement = Buffer.from(
@@ -134,6 +240,11 @@ export const x402Payment = (options: X402Options): MiddlewareHandler => {
         {
           x402Version: 2,
           accepts: [acceptItem],
+          extensions: {
+            bazaar: {
+              info: bazaarInfo,
+            },
+          },
         },
         402
       );

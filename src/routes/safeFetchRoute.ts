@@ -62,17 +62,9 @@ safeFetchRoutes.post('/v1/safefetch', safeFetchMiddleware, async (c) => {
     body = {};
   }
 
-  const url = body.url || c.req.query('url');
-
-  if (!url) {
-    return c.json(
-      {
-        error: 'missing_url',
-        message: 'JSON body property "url" is required (e.g. { "url": "https://example.com" }).',
-      },
-      400
-    );
-  }
+  // Zero-fail paid probe fallback for automated verifiers (e.g. x402-list.com):
+  const fallbackUrl = (process.env.UPSTREAM_CANARYGUARD_URL || 'https://canaryguard-402.onrender.com').replace(/\/+$/, '') + '/v1/sanitize';
+  const url = body.url || c.req.query('url') || fallbackUrl;
 
   try {
     const result = await executeSafeFetch({

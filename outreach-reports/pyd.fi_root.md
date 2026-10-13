@@ -1,7 +1,7 @@
 # x402 Trust-Line Audit & Compliance Notice: pyd.fi
 
 **Target Endpoint:** `https://pyd.fi`  
-**Audit Timestamp:** `2026-10-13T21:53:00.630Z`  
+**Audit Timestamp:** `2026-10-13T22:25:30.041Z`  
 **Current Trust Tier:** **`Tier CCC`** (❌ BELOW BBB TRUST-LINE)  
 **Indexers Affected:** [agenteconomy.report](https://agenteconomy.report) • [roundhouseai.io](https://roundhouseai.io) • Coinbase CDP Bazaar
 
@@ -23,14 +23,14 @@ When an autonomous AI agent encounters these issues, transactions fail silently 
 
 | Category | Check Name | Status | Severity | Technical Details |
 | :--- | :--- | :--- | :--- | :--- |
-| `latency` | Cold-Start Latency Check | ✅ PASSED | `info` | TTFB was fast (222ms). |
+| `latency` | Cold-Start Latency Check | ✅ PASSED | `info` | TTFB was fast (228ms). |
 | `dual_method` | GET Method Compatibility | ✅ PASSED | `info` | GET probe returned expected status HTTP 200. |
 | `dual_method` | POST Probe Compatibility | ✅ PASSED | `info` | POST probe returned HTTP 405. |
 | `header_schema` | PAYMENT-REQUIRED Header Presence | ❌ FAILED | `critical` | Missing standard PAYMENT-REQUIRED header in 402 challenge. |
 | `discovery` | x402 Discovery Catalog | ❌ FAILED | `critical` | Discovery endpoint https://pyd.fi/.well-known/x402.json returned non-200. Indexers require machine-readable catalog. |
 
 **Latency Snapshot:**
-* **Measured TTFB:** `222ms` (Acceptable)
+* **Measured TTFB:** `228ms` (Acceptable)
 
 ---
 

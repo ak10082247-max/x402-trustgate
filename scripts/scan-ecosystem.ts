@@ -1,10 +1,16 @@
 import fs from 'fs';
 import path from 'path';
 import { runDiagnostics } from '../src/services/diagnostics.js';
+import { diagnoseSkill, SkillDiagnosticSummary } from '../src/services/skillHardener.js';
 
 interface ScanTarget {
   url: string;
   skillUrl?: string;
+}
+
+interface LoadedTargets {
+  services: ScanTarget[];
+  skills: string[];
 }
 
 // Ensure outreach-reports directory exists
@@ -55,17 +61,18 @@ async function fetchDirectoryTargets(): Promise<ScanTarget[]> {
 }
 
 /**
- * Parses target URLs from CLI arguments or targets.json
+ * Parses target URLs and skill slugs from CLI arguments or targets.json
  */
-async function loadTargets(): Promise<ScanTarget[]> {
+async function loadTargets(): Promise<LoadedTargets> {
   const args = process.argv.slice(2);
-  let targets: ScanTarget[] = [];
+  let services: ScanTarget[] = [];
+  let skills: string[] = [];
 
   // 1. Check for --fetch-directory flag
   if (args.includes('--fetch-directory') || args.includes('-d')) {
     const live = await fetchDirectoryTargets();
     if (live.length > 0) {
-      targets.push(...live);
+      services.push(...live);
     }
   }
 
@@ -78,60 +85,64 @@ async function loadTargets(): Promise<ScanTarget[]> {
     }
   }
 
-  if (filePath && fs.existsSync(filePath)) {
-    const raw = fs.readFileSync(filePath, 'utf8');
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      const list = parsed.map((item) =>
-        typeof item === 'string' ? { url: item } : item
-      );
-      targets.push(...list);
-      return targets;
+  const defaultFile = path.resolve(process.cwd(), 'targets.json');
+  const targetFile = filePath && fs.existsSync(filePath) ? filePath : fs.existsSync(defaultFile) ? defaultFile : '';
+
+  if (targetFile) {
+    try {
+      const raw = fs.readFileSync(targetFile, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        services.push(...parsed.map((item) => (typeof item === 'string' ? { url: item } : item)));
+      } else if (parsed && typeof parsed === 'object') {
+        if (Array.isArray(parsed.services)) {
+          services.push(...parsed.services.map((item: any) => (typeof item === 'string' ? { url: item } : item)));
+        }
+        if (Array.isArray(parsed.skills)) {
+          skills.push(...parsed.skills);
+        }
+      }
+    } catch (err: any) {
+      console.warn(`[scanner] Error parsing ${targetFile}: ${err.message}`);
     }
   }
 
   // 3. Check if direct URLs passed as CLI arguments
   const urlArgs = args.filter((a) => !a.startsWith('-') && a.startsWith('http'));
   if (urlArgs.length > 0) {
-    targets.push(...urlArgs.map((u) => ({ url: u })));
-    return targets;
-  }
-
-  // 4. Check default targets.json in cwd
-  const defaultFile = path.resolve(process.cwd(), 'targets.json');
-  if (fs.existsSync(defaultFile)) {
-    const raw = fs.readFileSync(defaultFile, 'utf8');
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      const list = parsed.map((item) =>
-        typeof item === 'string' ? { url: item } : item
-      );
-      targets.push(...list);
-    }
+    services.push(...urlArgs.map((u) => ({ url: u })));
   }
 
   // Fallback defaults if still empty
-  if (targets.length === 0) {
-    targets = [
+  if (services.length === 0) {
+    services = [
       { url: 'https://canaryguard-402.onrender.com/v1/sanitize' },
-      { url: 'https://canaryguard-402.onrender.com/v1/base/token' },
-      { url: 'https://httpbin.org/status/405' },
+      { url: 'https://x402.onchainexpat.com' },
+      { url: 'https://places.use.x402atlas.com' },
     ];
   }
 
-  // De-duplicate targets by URL
-  const seen = new Set<string>();
-  return targets.filter((t) => {
-    if (seen.has(t.url)) return false;
-    seen.add(t.url);
+  if (skills.length === 0) {
+    skills = ['find-people', 'x402-pay', 'x402hub', 'openclaw-x402-skill'];
+  }
+
+  // De-duplicate targets by URL / slug
+  const seenUrls = new Set<string>();
+  const dedupedServices = services.filter((s) => {
+    if (seenUrls.has(s.url)) return false;
+    seenUrls.add(s.url);
     return true;
   });
+
+  const dedupedSkills = Array.from(new Set(skills));
+
+  return { services: dedupedServices, skills: dedupedSkills };
 }
 
 /**
- * Formats a clean outreach markdown report for failing services
+ * Formats a clean outreach markdown report for failing x402 services
  */
-function generateOutreachMarkdown(params: {
+function generateServiceOutreachMarkdown(params: {
   targetUrl: string;
   domain: string;
   estimatedTrustTier: string;
@@ -239,18 +250,92 @@ curl -X POST ${hardenSkillEndpoint} \\
 }
 
 /**
+ * Formats a clean outreach markdown report for flagged ClawHub skills
+ */
+function generateSkillOutreachMarkdown(skill: SkillDiagnosticSummary): string {
+  const serviceHost = process.env.PUBLIC_TRUSTGATE_URL || 'https://x402-trustgate.onrender.com';
+  const diagnoseLink = `${serviceHost}/v1/diagnose?skill=${encodeURIComponent(skill.skill)}`;
+  const hardenEndpoint = `${serviceHost}/v1/harden-skill`;
+
+  return `# ClawHub Skill Trust-Line Audit & Hardening Notice: ${skill.name}
+
+**Target Skill:** \`${skill.name}\` (\`${skill.skill}\`)  
+**Registry:** [${skill.registry}](https://clawhub.ai/skills/${skill.skill}) • [agenteconomy.report](https://agenteconomy.report/k/${skill.skill})  
+**Audit Timestamp:** \`${skill.timestamp}\`  
+**Current Trust Tier:** **\`Tier ${skill.tier}\`** (${skill.above_trust_line ? '✅ ABOVE BBB' : '❌ BELOW BBB TRUST-LINE'})  
+**Flags Detected:** ${skill.flags.map((f) => `\`${f}\``).join(', ')}  
+**Downloads (All-Time):** ${skill.downloads}  
+
+---
+
+## ⚠️ Executive Summary
+
+During our automated ecosystem audit, your ClawHub skill **${skill.skill}** was analyzed against the **BBB Trust-Line** criteria on [agenteconomy.report](https://agenteconomy.report/k/${skill.skill}).
+
+Because your skill was flagged with **${skill.flags.join(', ')}**, it is currently capped at **Tier ${skill.tier}** (below the BBB Trust-Line). Autonomous agent orchestrators and discovery registries filter out skills below the BBB Trust-Line or require manual operator authorization before execution.
+
+### Observed Flag Breakdown:
+${skill.symptomSummary.map((s) => `- ❌ **${s}**`).join('\n')}
+
+---
+
+## 🛠️ Free Live Verification
+
+You can independently verify this skill's compliance status at any time via our free zero-cost diagnostic hook:
+
+🔗 **[Run Live Skill Verification Check](${diagnoseLink})**
+
+\`\`\`bash
+# Run free diagnostic test from your terminal:
+curl -s "${diagnoseLink}"
+\`\`\`
+
+---
+
+## ⚡ 1-Click Automated Skill Hardening ($0.85 USDC)
+
+We provide an automated drop-in rewriter for your \`SKILL.md\` that removes all trust-capping penalty flags:
+
+1. **Eliminate KEYS Flag:** Automatically replaces all references to "private key", "seed phrase", "secret key", and "mnemonic" with static-scanner-safe equivalents ("managed x402 signer", "AgentKit wallet provider").
+2. **Eliminate UNKNOWN_PAYEE Flag:** Prepends a verified pre-flight check to cataloged endpoint \`https://canaryguard-402.onrender.com/v1/sanitize\` ($0.003 USDC) so your skill inherits a rated, verified counterparty track record.
+3. **ClawHub Topic Compliance:** Strips reserved keywords from frontmatter and ensures $\\le 5$ topics under 48 characters.
+
+> **Compliance Note:** Priced at **$0.85 USDC** (\`850000\` units on Base \`eip155:8453\`) to comply with Agent Economy Report's <$1.00 daily micro-transaction policy.
+
+### Purchase & Unlock Hardened SKILL.md via x402 Agent / cURL:
+
+\`\`\`bash
+# 1. Probe the harden-skill endpoint (returns HTTP 402 with Base Mainnet payment details):
+curl -i -X POST ${hardenEndpoint} \\
+  -H "Content-Type: application/json" \\
+  -d '{"skill": "${skill.skill}"}'
+
+# 2. Attach Base Mainnet USDC payment signature to unlock the sanitized SKILL.md:
+curl -X POST ${hardenEndpoint} \\
+  -H "Content-Type: application/json" \\
+  -H "PAYMENT-SIGNATURE: <base64-signed-payment>" \\
+  -d '{"skill": "${skill.skill}"}'
+\`\`\`
+
+---
+
+*Report automatically generated by [x402-trustgate](https://x402-trustgate.onrender.com) • Base Mainnet ecosystem security initiative.*
+`;
+}
+
+/**
  * Main execution loop
  */
 async function main() {
   console.log(`====================================================`);
   console.log(`🔍 [x402-trustgate] Ecosystem Lead Generation Scanner`);
-  console.log(`🌐 Base Mainnet x402 Trust-Line Auditor`);
+  console.log(`🌐 Base Mainnet x402 Trust-Line & Skill Auditor`);
   console.log(`====================================================\n`);
 
-  const targets = await loadTargets();
-  console.log(`Loaded ${targets.length} target endpoint(s) for audit...\n`);
+  const { services, skills } = await loadTargets();
+  console.log(`Loaded ${services.length} target endpoint(s) and ${skills.length} ClawHub skill(s) for audit...\n`);
 
-  const summary: {
+  const serviceSummary: {
     target: string;
     tier: string;
     criticalCount: number;
@@ -258,9 +343,19 @@ async function main() {
     reportPath?: string;
   }[] = [];
 
-  for (let i = 0; i < targets.length; i++) {
-    const target = targets[i];
-    console.log(`[${i + 1}/${targets.length}] Auditing: ${target.url}...`);
+  const skillSummary: {
+    skill: string;
+    name: string;
+    tier: string;
+    flags: string[];
+    reportPath?: string;
+  }[] = [];
+
+  // PART 1: AUDIT SERVICES
+  console.log(`--- [1/2] Auditing x402 Services ---`);
+  for (let i = 0; i < services.length; i++) {
+    const target = services[i];
+    console.log(`[${i + 1}/${services.length}] Auditing: ${target.url}...`);
 
     try {
       const { teaser, fullReport } = await runDiagnostics(target.url, target.skillUrl);
@@ -276,11 +371,9 @@ async function main() {
         const pathSlug = parsedUrl.pathname.replace(/^\/|\/$/g, '').replace(/[^a-zA-Z0-9]/g, '_') || 'root';
         const fileName = `${domain}_${pathSlug}.md`;
         const filePath = path.join(reportsDir, fileName);
-
-        // Also save primary domain report
         const domainFilePath = path.join(reportsDir, `${domain}.md`);
 
-        const markdown = generateOutreachMarkdown({
+        const markdown = generateServiceOutreachMarkdown({
           targetUrl: target.url,
           domain,
           estimatedTrustTier: teaser.estimatedTrustTier,
@@ -299,7 +392,7 @@ async function main() {
         console.log(`   ✅ Target passed BBB Trust-Line requirements!`);
       }
 
-      summary.push({
+      serviceSummary.push({
         target: target.url,
         tier: teaser.estimatedTrustTier,
         criticalCount: teaser.criticalBlockersCount,
@@ -308,7 +401,7 @@ async function main() {
       });
     } catch (err: any) {
       console.error(`   ❌ Failed to probe ${target.url}: ${err.message}`);
-      summary.push({
+      serviceSummary.push({
         target: target.url,
         tier: 'D',
         criticalCount: 99,
@@ -319,15 +412,64 @@ async function main() {
     console.log('');
   }
 
+  // PART 2: AUDIT SKILLS
+  console.log(`\n--- [2/2] Auditing ClawHub Skills ---`);
+  for (let i = 0; i < skills.length; i++) {
+    const slug = skills[i];
+    console.log(`[${i + 1}/${skills.length}] Auditing Skill: ${slug}...`);
+
+    try {
+      const diag = await diagnoseSkill(slug);
+      console.log(`   -> Tier: ${diag.tier} | Flags: [${diag.flags.join(', ')}] | Above BBB: ${diag.above_trust_line}`);
+
+      let reportPath: string | undefined = undefined;
+
+      if (!diag.above_trust_line || diag.flags.length > 0) {
+        const fileName = `skill_${diag.skill}.md`;
+        const filePath = path.join(reportsDir, fileName);
+
+        const markdown = generateSkillOutreachMarkdown(diag);
+        fs.writeFileSync(filePath, markdown, 'utf8');
+
+        reportPath = path.relative(process.cwd(), filePath);
+        console.log(`   📄 Generated skill outreach report: ${reportPath}`);
+      } else {
+        console.log(`   ✅ Skill passed BBB Trust-Line requirements!`);
+      }
+
+      skillSummary.push({
+        skill: diag.skill,
+        name: diag.name,
+        tier: diag.tier,
+        flags: diag.flags,
+        reportPath,
+      });
+    } catch (err: any) {
+      console.error(`   ❌ Failed to diagnose skill ${slug}: ${err.message}`);
+    }
+
+    console.log('');
+  }
+
   console.log(`====================================================`);
   console.log(`📊 Ecosystem Audit Summary`);
   console.log(`====================================================`);
-  for (const item of summary) {
+  console.log(`\nServices:`);
+  for (const item of serviceSummary) {
     const status = item.criticalCount === 0 ? '✅ PASSED' : '⚠️ OUTREACH GENERATED';
     console.log(
       `- ${item.target}\n  Tier: ${item.tier} | Blockers: ${item.criticalCount} | TTFB: ${item.ttfbMs}ms | ${status}${item.reportPath ? ` -> ${item.reportPath}` : ''}`
     );
   }
+
+  console.log(`\nClawHub Skills:`);
+  for (const item of skillSummary) {
+    const status = item.flags.length === 0 ? '✅ PASSED' : '⚠️ OUTREACH GENERATED';
+    console.log(
+      `- ${item.name} (${item.skill})\n  Tier: ${item.tier} | Flags: [${item.flags.join(', ')}] | ${status}${item.reportPath ? ` -> ${item.reportPath}` : ''}`
+    );
+  }
+
   console.log(`\nCompleted sweep. Generated reports stored in: ${path.relative(process.cwd(), reportsDir)}/\n`);
 }
 

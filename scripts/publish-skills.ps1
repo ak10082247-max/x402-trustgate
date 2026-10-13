@@ -83,23 +83,25 @@ if (-not $allPassed) {
 # 2. ClawHub CLI Detection & Publishing
 Write-Host "`n[2/3] Publishing skills to ClawHub..." -ForegroundColor Yellow
 
-$clawhubInstalled = (Get-Command "clawhub" -ErrorAction SilentlyContinue) -ne $null
+$cliName = if (Get-Command "clawhub" -ErrorAction SilentlyContinue) { "clawhub" } elseif (Get-Command "openclaw" -ErrorAction SilentlyContinue) { "openclaw" } else { $null }
+$clawhubInstalled = $cliName -ne $null
 
 if (-not $clawhubInstalled) {
-    Write-Host "[WARN] ClawHub CLI ('clawhub') was not detected in PATH." -ForegroundColor DarkYellow
+    Write-Host "[WARN] ClawHub CLI ('clawhub' or 'openclaw') was not detected in PATH." -ForegroundColor DarkYellow
     Write-Host "       Install ClawHub CLI via: npm install -g @openclaw/clawhub-cli" -ForegroundColor DarkGray
-    Write-Host "       Authenticate via:        clawhub login" -ForegroundColor DarkGray
+    Write-Host "       Authenticate via:        clawhub login (or openclaw login)" -ForegroundColor DarkGray
     Write-Host "       Executing in preview/dry-run mode:`n" -ForegroundColor DarkYellow
 }
 
 foreach ($skill in $Skills) {
-    $cmd = "clawhub skill publish $($skill.Path) --slug $($skill.Slug) --name `"$($skill.Name)`" --categories `"$($skill.Categories)`" --topics `"$($skill.Topics)`""
+    $execName = if ($cliName) { $cliName } else { "clawhub" }
+    $cmd = "$execName skill publish $($skill.Path) --slug $($skill.Slug) --name `"$($skill.Name)`" --categories `"$($skill.Categories)`" --topics `"$($skill.Topics)`""
     Write-Host ">> $cmd" -ForegroundColor Cyan
 
     if ($clawhubInstalled -and (-not $DryRun)) {
         try {
-            & clawhub skill publish $skill.Path --slug $skill.Slug --name $skill.Name --categories $skill.Categories --topics $skill.Topics
-            Write-Host "   [SUCCESS] Published $($skill.Slug) to ClawHub!`n" -ForegroundColor Green
+            & $cliName skill publish $skill.Path --slug $skill.Slug --name $skill.Name --categories $skill.Categories --topics $skill.Topics
+            Write-Host "   [SUCCESS] Published $($skill.Slug) via $cliName!`n" -ForegroundColor Green
         }
         catch {
             Write-Warning "   [ERROR] Failed to publish $($skill.Slug): $_"

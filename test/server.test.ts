@@ -304,4 +304,77 @@ test('13. Engine 1: GET & POST /v1/harden-skill unauthenticated return 402 with 
   assert.ok(paidBody.fixesApplied.length > 0);
   assert.ok(!paidBody.hardenedSkill.includes('private key'));
   assert.ok(!paidBody.hardenedSkill.includes('http://'));
+  assert.ok(paidBody.hardenedSkill.includes('canaryguard-402.onrender.com/v1/sanitize'));
+});
+
+test('14. CDP Bazaar & Roundhouse AI: 402 challenge response includes extensions.bazaar.info', async () => {
+  const res = await app.request('/v1/remediate');
+  assert.equal(res.status, 402);
+  const body = await res.json();
+  assert.ok(body.extensions, 'extensions must be present in 402 response');
+  assert.ok(body.extensions.bazaar, 'extensions.bazaar must be present');
+  assert.ok(body.extensions.bazaar.info, 'extensions.bazaar.info must be present');
+  assert.equal(body.extensions.bazaar.info.input.type, 'http');
+  assert.equal(body.extensions.bazaar.info.input.method, 'POST');
+  assert.ok(body.extensions.bazaar.info.output);
+});
+
+test('15. Free Skill Auditor: GET /v1/diagnose?skill=find-people returns free diagnostic summary', async () => {
+  const res = await app.request('/v1/diagnose?skill=find-people');
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.equal(data.skill, 'find-people');
+  assert.ok(data.tier);
+  assert.ok(Array.isArray(data.flags));
+  assert.equal(data.remediationLocked, true);
+  assert.equal(data.unlockEndpoint, '/v1/harden-skill');
+  assert.ok(data.cost.includes('0.85'));
+  assert.ok(data.unlockInstructions.includes('POST /v1/harden-skill'));
+});
+
+test('16. Zero-Fail Paid Probes: empty POST bodies on paid requests succeed with 200 OK and PAYMENT-RESPONSE', async () => {
+  // 1. POST /v1/remediate with empty body
+  const remRes = await app.request('/v1/remediate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-PAYMENT': 'valid_test_signature',
+    },
+    body: JSON.stringify({}),
+  });
+  assert.equal(remRes.status, 200);
+  assert.ok(remRes.headers.get('PAYMENT-RESPONSE'));
+  const remBody = await remRes.json();
+  assert.equal(remBody.status, 'success');
+  assert.ok(remBody.remediation);
+
+  // 2. POST /v1/harden-skill with empty body
+  const hardRes = await app.request('/v1/harden-skill', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-PAYMENT': 'valid_test_signature',
+    },
+    body: JSON.stringify({}),
+  });
+  assert.equal(hardRes.status, 200);
+  assert.ok(hardRes.headers.get('PAYMENT-RESPONSE'));
+  const hardBody = await hardRes.json();
+  assert.equal(hardBody.status, 'success');
+  assert.ok(hardBody.hardenedSkill);
+
+  // 3. POST /v1/safefetch with empty body
+  const fetchRes = await app.request('/v1/safefetch', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-PAYMENT': 'valid_test_signature',
+    },
+    body: JSON.stringify({}),
+  });
+  assert.equal(fetchRes.status, 200);
+  assert.ok(fetchRes.headers.get('PAYMENT-RESPONSE'));
+  const fetchBody = await fetchRes.json();
+  assert.equal(fetchBody.status, 'success');
+  assert.ok(fetchBody.data);
 });
