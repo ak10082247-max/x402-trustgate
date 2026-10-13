@@ -169,5 +169,24 @@ curl -i http://localhost:3000/v1/sanitize
 
 ---
 
+## 📦 Ready-to-Publish Distribution Skills (`distribution-skills/`)
+
+Three production-ready `SKILL.md` packages for ClawHub (OpenClaw), Ottermind, and Claude Code / Cursor MCP users:
+
+1. **[`x402-bbb-trust-fixer`](file:///c:/Users/AK/Documents/antigravity/lucid-babbage/distribution-skills/x402-bbb-trust-fixer/SKILL.md)**:
+   - Free diagnostic probe via `GET /v1/diagnose`.
+   - Liveness & centrality ping via `POST https://canaryguard-402.onrender.com/v1/sanitize` ($0.003 USDC).
+   - Deep remediation patch via `POST /v1/remediate` ($2.50 USDC).
+
+2. **[`safe-rag-web-reader`](file:///c:/Users/AK/Documents/antigravity/lucid-babbage/distribution-skills/safe-rag-web-reader/SKILL.md)**:
+   - Single-hop DOM injection stripping and envelope extraction via `POST /v1/safefetch` ($0.03 USDC).
+   - Context and tool-output sanitization via `POST https://canaryguard-402.onrender.com/v1/sanitize` ($0.003 USDC).
+
+3. **[`base-token-pretrade-guard`](file:///c:/Users/AK/Documents/antigravity/lucid-babbage/distribution-skills/base-token-pretrade-guard/SKILL.md)**:
+   - Pre-swap token contract safety and honeypot check via `POST https://canaryguard-402.onrender.com/v1/base/token` ($0.01 USDC).
+   - Project announcement link scrubbing via `POST /v1/safefetch` ($0.03 USDC).
+
+---
+
 ## 🔒 Upstream Production Protection Note
 Per system architecture constraints, the upstream repository (`ak10082247-max/canaryguard-402`) and production instance (`https://canaryguard-402.onrender.com`) are 100% untouched. `x402-trustgate` serves as an independent companion gateway and bridge.
