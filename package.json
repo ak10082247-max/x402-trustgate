@@ -4,6 +4,9 @@
   "description": "Production x402 revenue service and trustgate gateway on Base mainnet (eip155:8453)",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "x402-trustgate-mcp": "dist/mcp-server.js"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
@@ -25,6 +28,7 @@
   "license": "MIT",
   "dependencies": {
     "@hono/node-server": "^1.13.8",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "dotenv": "^16.4.7",
     "hono": "^4.7.1"
   },

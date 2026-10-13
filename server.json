@@ -1,0 +1,154 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/schema/server.json",
+  "name": "io.github.ak10082247-max/x402-trustgate",
+  "title": "x402 TrustGate",
+  "description": "Autonomous x402 BBB Trust-Line Auditor, Skill Hardener & SafeFetch Proxy on Base Mainnet",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ak10082247-max/x402-trustgate"
+  },
+  "homepage": "https://ireland-once-opposed-stores.trycloudflare.com",
+  "license": "MIT",
+  "categories": [
+    "security",
+    "developer-tools",
+    "web-search",
+    "payments"
+  ],
+  "keywords": [
+    "x402",
+    "mcp",
+    "base",
+    "ai-agents",
+    "usdc",
+    "trust-line",
+    "prompt-injection",
+    "safefetch"
+  ],
+  "packages": [
+    {
+      "registry": "npm",
+      "package": "x402-trustgate",
+      "version": "1.0.0",
+      "entrypoint": "dist/mcp-server.js"
+    }
+  ],
+  "transport": {
+    "type": "stdio",
+    "command": "node",
+    "args": ["dist/mcp-server.js"]
+  },
+  "tools": [
+    {
+      "name": "diagnose_x402_target",
+      "title": "Diagnose x402 Target / ClawHub Skill",
+      "description": "FREE HOOK: Run a real multi-point live diagnostic probe against an x402 service URL or ClawHub skill slug. Tests cold-start latency (TTFB), GET/POST probe compliance, PAYMENT-REQUIRED v2 headers, and BBB Trust-Line status.",
+      "pricing": {
+        "model": "free",
+        "priceUsdc": "0.00"
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Target x402 service endpoint URL to probe"
+          },
+          "skill": {
+            "type": "string",
+            "description": "Optional ClawHub skill slug to audit (e.g. find-people, x402hub)"
+          },
+          "skill_url": {
+            "type": "string",
+            "description": "Optional raw GitHub/web SKILL.md URL to audit for security flags"
+          }
+        }
+      }
+    },
+    {
+      "name": "remediate_x402_service",
+      "title": "Remediate x402 Service",
+      "description": "REMEDIATION FIXER ($0.95 USDC on Base eip155:8453): Perform deep diagnostic scan and produce exact failed header diffs, drop-in TypeScript (Hono/Express) and Python (FastAPI) middleware fix code, and sanitized SKILL.md.",
+      "pricing": {
+        "model": "paid",
+        "priceUsdc": "0.95",
+        "amountUnits": "950000",
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "payTo": "0x73279fa4BadA7CAC888c62CDa4f5c8104765f6f1"
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Target x402 service endpoint URL to remediate"
+          },
+          "skill_url": {
+            "type": "string",
+            "description": "Optional raw SKILL.md URL to remediate and sanitize"
+          }
+        },
+        "required": ["target"]
+      }
+    },
+    {
+      "name": "harden_clawhub_skill",
+      "title": "Harden ClawHub SKILL.md",
+      "description": "SKILL HARDENER ($0.85 USDC on Base eip155:8453): Takes a raw SKILL.md text or URL and returns a de-flagged version eliminating KEYS triggers, unpinned URLs, and injecting CanaryGuard preflight checks to cross the BBB Trust Line.",
+      "pricing": {
+        "model": "paid",
+        "priceUsdc": "0.85",
+        "amountUnits": "850000",
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "payTo": "0x73279fa4BadA7CAC888c62CDa4f5c8104765f6f1"
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "raw_skill": {
+            "type": "string",
+            "description": "Raw SKILL.md markdown text content to sanitize and harden"
+          },
+          "skill_url": {
+            "type": "string",
+            "description": "URL of the raw SKILL.md to fetch and harden"
+          },
+          "skill": {
+            "type": "string",
+            "description": "Optional ClawHub skill slug (e.g. find-people)"
+          }
+        }
+      }
+    },
+    {
+      "name": "safefetch_url",
+      "title": "SafeFetch Web Proxy",
+      "description": "SAFEFETCH PROXY ($0.03 USDC on Base eip155:8453): Ingests external web pages safely. Strips scripts, styles, and hidden DOM injection nodes, converts HTML to clean Markdown, and wraps output in a strict cryptographic <untrusted_data_envelope>.",
+      "pricing": {
+        "model": "paid",
+        "priceUsdc": "0.03",
+        "amountUnits": "30000",
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "payTo": "0x73279fa4BadA7CAC888c62CDa4f5c8104765f6f1"
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "External web URL to read safely"
+          },
+          "maxContentLength": {
+            "type": "number",
+            "description": "Maximum content length to return (default: 50000)"
+          }
+        },
+        "required": ["url"]
+      }
+    }
+  ]
+}
