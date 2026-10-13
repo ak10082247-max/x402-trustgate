@@ -63,6 +63,7 @@ export interface X402Settlement {
   settledAt: string;
   facilitator: string;
   payer?: string;
+  error?: string;
 }
 
 /**
@@ -263,7 +264,7 @@ export const x402Payment = (options: X402Options): MiddlewareHandler => {
           {
             x402Version: 2,
             error: 'payment_verification_failed',
-            details: 'The provided x402 payment signature could not be verified by the facilitator.',
+            details: settlement.error || 'The provided x402 payment signature could not be verified by the facilitator.',
           },
           402
         );
@@ -285,17 +286,17 @@ export const x402Payment = (options: X402Options): MiddlewareHandler => {
       return c.json(
         {
           x402Version: 2,
-          error: 'facilitator_error',
+          error: 'payment_verification_failed',
           details: err?.message || 'Error communicating with x402 facilitator',
         },
-        502
+        402
       );
     }
   };
 };
 
 /**
- * Communicates with the x402 Facilitator to verify signature & settle payment
+ * Communicates with the x402 Facilitator to verify signature & settle payment on Base mainnet
  */
 async function verifyPaymentWithFacilitator(params: {
   payment: string;
@@ -304,53 +305,75 @@ async function verifyPaymentWithFacilitator(params: {
 }): Promise<X402Settlement> {
   const facilitatorBase = config.x402FacilitatorUrl;
 
-  // Handle local/simulation testing signature
-  if (
-    params.payment.startsWith('test_simulated_payment_') ||
-    params.payment === 'valid_test_signature' ||
-    process.env.SIMULATE_SETTLEMENT === 'true'
-  ) {
-    return {
-      success: true,
-      network: config.network,
-      asset: config.usdcAsset,
-      payTo: config.payToWallet,
-      amount: params.requirement.maxAmountRequired,
-      txHash: `0xsimulated_${Date.now().toString(16)}_${Math.random().toString(16).slice(2, 10)}`,
-      settledAt: new Date().toISOString(),
-      facilitator: facilitatorBase,
-      payer: '0x1111111111111111111111111111111111111111',
-    };
+  // 1. ISOLATE TEST BYPASS STRICTLY TO NODE_ENV === 'test'
+  if (process.env.NODE_ENV === 'test') {
+    if (
+      params.payment.startsWith('test_simulated_payment_') ||
+      params.payment === 'valid_test_signature' ||
+      process.env.SIMULATE_SETTLEMENT === 'true'
+    ) {
+      return {
+        success: true,
+        network: config.network,
+        asset: config.usdcAsset,
+        payTo: config.payToWallet,
+        amount: params.requirement.maxAmountRequired,
+        txHash: `0xsimulated_${Date.now().toString(16)}_${Math.random().toString(16).slice(2, 10)}`,
+        settledAt: new Date().toISOString(),
+        facilitator: facilitatorBase,
+        payer: '0x1111111111111111111111111111111111111111',
+      };
+    }
   }
 
-  // Construct facilitator verification endpoints
-  const verifyUrl = facilitatorBase.endsWith('/verify')
-    ? facilitatorBase
-    : `${facilitatorBase}/verify`;
+  // 2. ENFORCE REAL FACILITATOR /verify AND /settle ON BASE MAINNET (when NODE_ENV !== 'test')
+  let paymentPayload: any = null;
+  try {
+    const decoded = Buffer.from(params.payment, 'base64').toString('utf-8');
+    paymentPayload = JSON.parse(decoded);
+  } catch {
+    try {
+      paymentPayload = JSON.parse(params.payment);
+    } catch {
+      paymentPayload = { signature: params.payment };
+    }
+  }
+
+  // Facilitator endpoint URLs
+  const baseUrl = facilitatorBase.replace(/\/(verify|settle)$/, '');
+  const verifyUrl = `${baseUrl}/verify`;
+  const settleUrl = `${baseUrl}/settle`;
+
+  const requestPayload = {
+    paymentPayload,
+    payment: params.payment,
+    paymentHeader: params.payment,
+    paymentRequirements: params.requirement,
+    requirements: params.requirement,
+    resource: params.resource,
+    network: config.network,
+    asset: config.usdcAsset,
+    payTo: config.payToWallet,
+  };
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
 
   try {
-    const response = await fetch(verifyUrl, {
+    // Step 1: POST to /verify
+    const verifyRes = await fetch(verifyUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'x402-trustgate/1.0',
       },
-      body: JSON.stringify({
-        payment: params.payment,
-        paymentHeader: params.payment,
-        requirements: params.requirement,
-        resource: params.resource,
-      }),
+      body: JSON.stringify(requestPayload),
       signal: controller.signal,
     });
 
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      console.warn(`[x402] Facilitator returned HTTP ${response.status}`);
+    if (!verifyRes.ok) {
+      const errText = await verifyRes.text().catch(() => '');
+      clearTimeout(timeout);
       return {
         success: false,
         network: config.network,
@@ -360,35 +383,104 @@ async function verifyPaymentWithFacilitator(params: {
         txHash: '',
         settledAt: '',
         facilitator: facilitatorBase,
+        error: `Facilitator verification rejected (HTTP ${verifyRes.status}): ${errText || verifyRes.statusText}`,
       };
     }
 
-    const data: any = await response.json();
+    const verifyData: any = await verifyRes.json();
+    const isValid = verifyData.isValid === true || verifyData.valid === true;
 
+    if (!isValid) {
+      clearTimeout(timeout);
+      return {
+        success: false,
+        network: config.network,
+        asset: config.usdcAsset,
+        payTo: config.payToWallet,
+        amount: params.requirement.maxAmountRequired,
+        txHash: '',
+        settledAt: '',
+        facilitator: facilitatorBase,
+        error: verifyData.error || verifyData.reason || 'Payment signature verification failed',
+      };
+    }
+
+    // Step 2: POST to /settle
+    const settleRes = await fetch(settleUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'x402-trustgate/1.0',
+      },
+      body: JSON.stringify(requestPayload),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!settleRes.ok) {
+      const errText = await settleRes.text().catch(() => '');
+      return {
+        success: false,
+        network: config.network,
+        asset: config.usdcAsset,
+        payTo: config.payToWallet,
+        amount: params.requirement.maxAmountRequired,
+        txHash: '',
+        settledAt: '',
+        facilitator: facilitatorBase,
+        error: `Facilitator settlement rejected (HTTP ${settleRes.status}): ${errText || settleRes.statusText}`,
+      };
+    }
+
+    const settleData: any = await settleRes.json();
     const isSuccess =
-      data.valid === true ||
-      data.success === true ||
-      Boolean(data.txHash || data.transactionHash || data.receipt);
+      (settleData.success === true || settleData.isValid === true) &&
+      Boolean(settleData.txHash || settleData.transaction || settleData.transactionHash);
+
+    if (!isSuccess) {
+      return {
+        success: false,
+        network: config.network,
+        asset: config.usdcAsset,
+        payTo: config.payToWallet,
+        amount: params.requirement.maxAmountRequired,
+        txHash: '',
+        settledAt: '',
+        facilitator: facilitatorBase,
+        error: settleData.error || settleData.reason || 'Payment settlement confirmation failed',
+      };
+    }
 
     const txHash =
-      data.txHash ||
-      data.transactionHash ||
-      data.receipt?.transactionHash ||
-      `0x${Date.now().toString(16)}`;
+      settleData.txHash ||
+      settleData.transaction ||
+      settleData.transactionHash ||
+      settleData.receipt?.transactionHash;
 
     return {
-      success: isSuccess,
-      network: data.network || config.network,
-      asset: data.asset || config.usdcAsset,
+      success: true,
+      network: settleData.network || config.network,
+      asset: settleData.asset || config.usdcAsset,
       payTo: config.payToWallet,
-      amount: data.amount || params.requirement.maxAmountRequired,
+      amount: settleData.amount || params.requirement.maxAmountRequired,
       txHash,
-      settledAt: data.settledAt || new Date().toISOString(),
+      settledAt: settleData.settledAt || new Date().toISOString(),
       facilitator: facilitatorBase,
-      payer: data.payer || data.signer,
+      payer: settleData.payer || settleData.signer || paymentPayload?.payer,
     };
   } catch (err: any) {
     clearTimeout(timeout);
-    throw err;
+    return {
+      success: false,
+      network: config.network,
+      asset: config.usdcAsset,
+      payTo: config.payToWallet,
+      amount: params.requirement.maxAmountRequired,
+      txHash: '',
+      settledAt: '',
+      facilitator: facilitatorBase,
+      error: err?.message || 'Error communicating with x402 facilitator',
+    };
   }
 }

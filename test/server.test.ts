@@ -1,5 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+
+// Strictly enforce NODE_ENV=test for automated testing suite
+process.env.NODE_ENV = 'test';
+
 import { app } from '../src/app.js';
 import { config } from '../src/config.js';
 
